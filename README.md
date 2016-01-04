@@ -1,2 +1,0 @@
-# Compiler
-A cool compiler
