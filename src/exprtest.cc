@@ -5,9 +5,21 @@
 
 #include "driver.h"
 #include "expression.h"
+#include "tree.h"
+
+
+void Delete(std::vector<classdeclNode*>&classes){
+	for(std::vector<classdeclNode*>::iterator itt = classes.begin; itt != classes.end; ++itt){
+			delete *itt;
+		}
+		classes.clear();
+}
 
 int main(int argc, char *argv[])
 {
+	std::vector<classdeclNode*>classes;
+
+
     CalcContext calc;
     example::Driver driver(calc);
     bool readfile = false;
@@ -32,7 +44,7 @@ int main(int argc, char *argv[])
 	    }
 
 	    calc.clearExpressions();
-	    bool result = driver.parse_stream(infile, argv[ai]);
+	    bool result = driver.parse_stream(infile, argv[ai],classes);
 	    if (result)
 	    {
 		std::cout << "Expressions:" << std::endl;
@@ -51,7 +63,11 @@ int main(int argc, char *argv[])
 	}
     }
 
-    if (readfile) return 0;
+    if (readfile) {
+
+
+    		Delete(classes);
+    	return 0;}
     
     std::cout << "Reading expressions from stdin" << std::endl;
 
@@ -60,19 +76,16 @@ int main(int argc, char *argv[])
 	   std::getline(std::cin, line) &&
 	   !line.empty() )
     {
-	calc.clearExpressions();
-	bool result = driver.parse_string(line, "input");
+	bool result = driver.parse_string(line, classes, "input");
+	if(result){
+		for(std::vector<classdeclNode*>::iterator itt = classes.begin; itt != classes.end; ++itt){
 
-	if (result)
-	{
-	    for (unsigned int ei = 0; ei < calc.expressions.size(); ++ei)
-	    {
-		std::cout << "tree:" << std::endl;
-		calc.expressions[ei]->print(std::cout);
-		std::cout << "evaluated: "
-			  << calc.expressions[ei]->evaluate()
-			  << std::endl;
-	    }
+			classdeclNode*node = *itt;
+			std::cout<<std::to_string(node->typeNode->id) << std::endl;
+			Delete(classes);
+
+		}
 	}
+
     }
 }

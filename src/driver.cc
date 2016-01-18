@@ -6,7 +6,7 @@
 
 #include "driver.h"
 #include "scanner.h"
-
+#include "tree.h"
 namespace example {
 
 Driver::Driver(class CalcContext& _calc)
@@ -16,7 +16,7 @@ Driver::Driver(class CalcContext& _calc)
 {
 }
 
-bool Driver::parse_stream(std::istream& in, const std::string& sname)
+bool Driver::parse_stream(std::istream& in, std::vector<classdeclNode*> &classes, const std::string& sname)
 {
     streamname = sname;
 
@@ -24,22 +24,22 @@ bool Driver::parse_stream(std::istream& in, const std::string& sname)
     scanner.set_debug(trace_scanning);
     this->lexer = &scanner;
 
-    Parser parser(*this);
+    Parser parser(*this,classes);
     parser.set_debug_level(trace_parsing);
     return (parser.parse() == 0);
 }
 
-bool Driver::parse_file(const std::string &filename)
+bool Driver::parse_file(const std::string &filename, std::vector<classdeclNode*> &classes) 
 {
     std::ifstream in(filename.c_str());
     if (!in.good()) return false;
-    return parse_stream(in, filename);
+    return parse_stream(in, classes, filename);
 }
 
-bool Driver::parse_string(const std::string &input, const std::string& sname)
+bool Driver::parse_string(const std::string &input, std::vector<classdeclNode*> &classes, const std::string& sname)
 {
     std::istringstream iss(input);
-    return parse_stream(iss, sname);
+    return parse_stream(iss, classes, sname);
 }
 
 void Driver::error(const class location& l,

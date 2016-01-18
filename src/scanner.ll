@@ -41,12 +41,23 @@ typedef example::Parser::token_type token_type;
 
 /* enables the use of start condition stacks */
 %option stack
+%option yylineno
 
 /* The following paragraph suffices to track locations accurately. Each time
  * yylex is invoked, the begin position is moved onto the end position. */
 %{
 #define YY_USER_ACTION  yylloc->columns(yyleng);
 %}
+
+/** FLEX Declarations **/
+CLASS_ID                            [A-Z][_A-Za-z0-9]*
+ID                                  [_a-z][_A-Za-z0-9]*
+SIGN                                [+|-]
+INT                                 0|[1-9][0-9]*
+WS                                  [" "|"\t"|"\n"|"\r"]
+
+/** Declaration of all States **/
+%s COMMENT STRING STRESCAPE CHAR CHARESCAPE TRSTRING
 
 %% /*** Regular Expressions Part ***/
 
@@ -56,40 +67,96 @@ typedef example::Parser::token_type token_type;
     yylloc->step();
 %}
 
- /*** BEGIN EXAMPLE - Change the example lexer rules below ***/
+<INITIAL,COMMENT>"/*"               {
+                                        if(comIndent==0)
+                                            BEGIN(COMMENT);
+                                        comIndent++;
+                                    }
+<INITIAL,COMMENT>"//"+.*$           ;
+<COMMENT>[^"*/"]                    {}
+<COMMENT>"*/"                       {
+                                        comIndent--;
+                                        if(comIndent==0) {
+                                            BEGIN(INITIAL);
+                                        }
+                                    }
+<COMMENT>.
+<INITIAL>"super"                    return token::SUPER;
+<INITIAL>"this"                     return token::THIS;
+<INITIAL>"override"                 return token::OVERRIDE;
+<INITIAL>"null"                     return token::NULLVAL;
+<INITIAL>"extends"                  return token::EXTENDS;
+<INITIAL>"if"                       return token::IF;
+<INITIAL>"else"                     return token::ELSE;
+<INITIAL>"while"                    return token::WHILE;
+<INITIAL>"match"                    return token::MATCH;
+<INITIAL>"case"                     return token::CASE;
+<INITIAL>","                        return token::COMMA;
+<INITIAL>"."                        return token::DOT;
+<INITIAL>"\"\"\""                   BEGIN(TRSTRING);
+<TRSTRING>"\"\"\""                  BEGIN(INITIAL); yylval.stdsting=new std::string(yytext); return token::STRING;
+<TRSTRING>.                         yymore();
+<INITIAL>"\""                       BEGIN(STRING);
+<STRING>"\""                        BEGIN(INITIAL); yylval.stdsting=new std::string(yytext); return token::STRING;
+<STRING>.                           yymore();
+<INITIAL>{INT}                      yylval.integer=std::to_string(yytext); return token::INTEGER;
+<INITIAL>"true"|"false"             yylval.boolean = strcmp(yytext, "true") ? true : false; return token::BOOL; 
+<INITIAL>"class"                    return token::CLASS;
+<INITIAL>{CLASS_ID}                 yylval.stdstring=new std::string(yytext); return token::TYPE;
+<INITIAL>";"                        return token::SEMICOLON;
+<INITIAL>":"                        return token::COLON;
+<INITIAL>"+"                        return token::ADD;
+<INITIAL>"-"                        return token::SUB;
+<INITIAL>"/"                        return token::DIV;
+<INITIAL>"*"                        return token::MULT;
+<INITIAL>"=="                       return token::EQEQ;
+<INITIAL>"=>"                       return token::ARROW;
+<INITIAL>"<="                       return token::LTEQ;
+<INITIAL>"<"                        return token::LT;
+<INITIAL>"="                        return token::EQ;
+<INITIAL>"!"                        return token::EXM;
+<INITIAL>"new"                      return token::NEW;
+<INITIAL>"def"                      return token::DEF;
+<INITIAL>"("                        return token::PAR_OPEN;
+<INITIAL>")"                        return token::PAR_CLOSE;
+<INITIAL>"{"                        indent++;return token::BRACE_OPEN;
+<INITIAL>"}"                        {
+                                        if (indent > 0) {indent--; return token::BRACE_CLOSE;}
+                                        else genError(ill_chr, (char*)"}", yylineno);
+                                    }
+<INITIAL>"var"                      return token::VAR;
+<INITIAL>"native"                   {
+                                        if (strcmp(filePath, "$CLASSHOME/lib/basic.cool")) return token::NATIVE;
+                                        else genError(ill_nat, yytext, yylineno);
+                                    }
+<INITIAL>"abstract"                 genError(ill_key, yytext, yylineno); //Ilegal keyword
+<INITIAL>"catch"                    genError(ill_key, yytext, yylineno); //Ilegal keyword
+<INITIAL>"do"                       genError(ill_key, yytext, yylineno); //Ilegal keyword
+<INITIAL>"final"                    genError(ill_key, yytext, yylineno); //Ilegal keyword
+<INITIAL>"finally"                  genError(ill_key, yytext, yylineno); //Ilegal keyword
+<INITIAL>"for"                      genError(ill_key, yytext, yylineno); //Ilegal keyword
+<INITIAL>"forsome"                  genError(ill_key, yytext, yylineno); //Ilegal keyword
+<INITIAL>"implicit"                 genError(ill_key, yytext, yylineno); //Ilegal keyword
+<INITIAL>"import"                   genError(ill_key, yytext, yylineno); //Ilegal keyword
+<INITIAL>"lazy"                     genError(ill_key, yytext, yylineno); //Ilegal keyword
+<INITIAL>"object"                   genError(ill_key, yytext, yylineno); //Ilegal keyword
+<INITIAL>"package"                  genError(ill_key, yytext, yylineno); //Ilegal keyword
+<INITIAL>"private"                  genError(ill_key, yytext, yylineno); //Ilegal keyword
+<INITIAL>"protected"                genError(ill_key, yytext, yylineno); //Ilegal keyword
+<INITIAL>"requires"                 genError(ill_key, yytext, yylineno); //Ilegal keyword
+<INITIAL>"return"                   genError(ill_key, yytext, yylineno); //Ilegal keyword
+<INITIAL>"sealed"                   genError(ill_key, yytext, yylineno); //Ilegal keyword
+<INITIAL>"throw"                    genError(ill_key, yytext, yylineno); //Ilegal keyword
+<INITIAL>"trait"                    genError(ill_key, yytext, yylineno); //Ilegal keyword
+<INITIAL>"try"                      genError(ill_key, yytext, yylineno); //Ilegal keyword
+<INITIAL>"type"                     genError(ill_key, yytext, yylineno); //Ilegal keyword
+<INITIAL>"val"                      genError(ill_key, yytext, yylineno); //Ilegal keyword
+<INITIAL>"with"                     genError(ill_key, yytext, yylineno); //Ilegal keyword
+<INITIAL>"yield"                    genError(ill_key, yytext, yylineno); //Ilegal keyword
+<INITIAL>{ID}                       yylval.stdstring=new std::string(yytext); return token::ID;
+<*>{WS}                             {}
+<*>.                                genError(ill_chr, yytext, yylineno); //Generates correct and incorrect errors.
 
-[0-9]+ {
-    yylval->integerVal = atoi(yytext);
-    return token::INTEGER;
-}
-
-[0-9]+"."[0-9]* {
-    yylval->doubleVal = atof(yytext);
-    return token::DOUBLE;
-}
-
-[A-Za-z][A-Za-z0-9_,.-]* {
-    yylval->stringVal = new std::string(yytext, yyleng);
-    return token::STRING;
-}
-
- /* gobble up white-spaces */
-[ \t\r]+ {
-    yylloc->step();
-}
-
- /* gobble up end-of-lines */
-\n {
-    yylloc->lines(yyleng); yylloc->step();
-    return token::EOL;
-}
-
- /* pass all other characters up to bison */
-. {
-    return static_cast<token_type>(*yytext);
-}
-
- /*** END EXAMPLE - Change the example lexer rules above ***/
 
 %% /*** Additional Code ***/
 
